@@ -30,3 +30,10 @@ int is_canary_file(const char *filepath){
     return (strstr(filepath, CANARY_PREFIX) !=NULL);
 
 }
+
+void cleanup_canary_file(const char *canary_path){
+    if (canary_path && access(canary_path, F_OK) == 0){
+        unlink(canary_path);
+        printf("[VFS-SENTINEL] canary trap cleaned up successfully.\n");
+    }
+}
