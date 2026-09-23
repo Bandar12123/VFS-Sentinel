@@ -8,3 +8,17 @@ int init_fanotify(void){
     }
     return fan_fd;
 }
+
+int mark_directory(int fan_fd, const char *dir_path){
+    int ret = fanotify_mark(fan_fd,
+                            FAN_MARK_ADD,
+                            FAN_OPEN_PERM | FAN_EVENT_ON_CHILD,
+                            AT_FDCWD,
+                            dir_path);
+    if (ret == 1){
+        perror("[ERROR] fanotify_mark failed");
+        return -1;
+    }
+    printf("[VFS-Sentinel] Monitoring active on directory: %s\n", dir_path);
+    return 0;
+}
