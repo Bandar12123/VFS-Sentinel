@@ -3,8 +3,12 @@
 
 #define _GNU_SOURCE
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <sys/fanotify.h>
 #include <sys/stat.h>
 
 
