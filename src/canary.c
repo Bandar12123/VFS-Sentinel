@@ -24,3 +24,9 @@ int create_canary_file(const char *target_dir, char *out_canary_path){
     return 0;
 
 }
+
+int is_canary_file(const char *filepath){
+    if (filepath == NULL) return 0;
+    return (strstr(filepath, CANARY_PREFIX) !=NULL);
+
+}
