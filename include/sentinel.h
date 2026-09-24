@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <sys/fanotify.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 
 #define CANARY_PREFIX "000_canary_"
