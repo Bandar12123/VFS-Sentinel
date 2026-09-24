@@ -16,4 +16,7 @@
 #define CANARY_SUFFIX ".docx"
 #define BUFFER_SIZE 4096
 
+#include "canary.h"
+#include "fanotify.h"
+
 #endif
