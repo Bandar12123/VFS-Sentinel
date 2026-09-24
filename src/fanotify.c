@@ -77,6 +77,7 @@ void start_event_loop(int fan_fd) {
 
                 response.response = FAN_DENY;
             } else {
+                backup_file(metadata->fd);
                 response.response = FAN_ALLOW;
             }
 
