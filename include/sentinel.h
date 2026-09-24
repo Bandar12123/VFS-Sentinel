@@ -20,4 +20,6 @@
 #include "canary.h"
 #include "fanotify.h"
 
+int sentinel_run(const char *target_dir);
+
 #endif
