@@ -34,3 +34,58 @@ static void get_filepath_from_fd(int fd, char *path_buffer, size_t size){
     }
 
 }
+
+void start_event_loop(int fan_fd) {
+    char buffer[BUFFER_SIZE];
+    ssize_t len;
+    pid_t my_pid = getpid();
+
+    printf("[VFS-Sentinel] Daemon running.. Listening for VFS events.\n");
+
+    while ((len = read(fan_fd, buffer, sizeof(buffer))) > 0) {
+        struct fanotify_event_metadata *metadata;
+        metadata = (struct fanotify_event_metadata *)buffer;
+        while (FAN_EVENT_OK(metadata, len)){
+            if (metadata->fd < 0) {
+                fprintf(stderr, "[WARN] fanotify queue overflow - some events were missed\n");
+                metadata = FAN_EVENT_NEXT(metadata, len);
+                continue;
+            }
+
+            struct fanotify_response response;
+            response.fd = metadata->fd;
+
+            if (metadata->pid == my_pid) {
+                response.response = FAN_ALLOW;
+                write(fan_fd, &response, sizeof(response));
+                close(metadata->fd);
+                metadata = FAN_EVENT_NEXT(metadata, len);
+                continue;
+            }
+
+            char filepath[512];
+            get_filepath_from_fd(metadata->fd, filepath, sizeof(filepath));
+            printf("[EVENT] PID %d requested access to:  %s\n", metadata->pid, filepath);
+
+            if (is_canary_file(filepath)) {
+                printf("\n[!  RANSOMWARE ALERT  !]\n");
+                printf("[VFS-Sentinel] Canary trap triggered by PID: %d\n", metadata->pid);
+                printf("[ACTION] Terminating process %d with SIGKILL and Blocking access.\n\n", metadata->pid);
+
+
+                kill(metadata->pid, SIGKILL);
+
+                response.response = FAN_DENY;
+            } else {
+                response.response = FAN_ALLOW;
+            }
+
+            write(fan_fd, &response, sizeof(response));
+
+            close(metadata->fd);
+            metadata = FAN_EVENT_NEXT(metadata, len);
+
+        }
+
+    }
+}
