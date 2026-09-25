@@ -3,6 +3,6 @@
 
 #include "sentinel.h"
 
-int buckup_file(int src_fd);
+int backup_file(int src_fd);
 
 #endif
