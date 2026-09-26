@@ -111,8 +111,6 @@ Turns on automatically on exit signals (`Ctrl+C` or `SIGTERM`) to clean up bait 
 
 ### 1. Build
 
-Note: the `Makefile` expects a `main.c` file in the project root (not inside `src/`). If you're setting up the project yourself, make sure `main.c` exists in the root folder with this inside it:
-
 ```c
 #include "sentinel.h"
 
