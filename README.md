@@ -82,3 +82,26 @@ One-Time File Backup: Takes an open file descriptor and creates a single backup 
 📄 `src/backup.c` — function: `fallback_copy(src_fd, dest_fd)`
 
 Internal Fallback Copy: If the fast `copy_file_range` call fails (e.g., across different filesystems), it falls back to a traditional read/write loop using an 8KB buffer to guarantee backup creation under all conditions.
+
+---
+
+📁 `include/sentinel.h` | `src/sentinel.c`
+
+## 4. sentinel.c / sentinel.h
+The entry interface, connects all above modules into a single function, keeping `main.c` clean and minimal.
+
+📄 `src/sentinel.c` — function: `handle_shutdown(sig)`
+
+Turns on automatically on exit signals (`Ctrl+C` or `SIGTERM`) to clean up bait files and exit the program safely.
+
+📄 `src/sentinel.c` — function: `sentinel_run(target_dir)`
+
+1- Automatically creates a test directory (`demo_vault`) if no path is provided.
+
+2- Registers the signal handler.
+
+3- (`create_canary_file`)
+
+4- Initializes fanotify and attaches it to the target directory (`init_fanotify` + `mark_directory`).
+
+5- Enters the monitoring loop (`start_event_loop`), which runs non-stop until stopped by the user.
