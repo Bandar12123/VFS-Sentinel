@@ -35,3 +35,35 @@ check the path of file and return 1 if that contain `000_canary_` this call the 
 📄 `src/canary.c` — function: `cleanup_canary_file(canary_path)`
 
 Automatically removes bait files when protection stops, leaving no clutter behind.
+
+
+---
+
+📁 `include/fanotify.h` | `src/fanotify.c`
+
+## fanotify.h / fanotify.c
+Monitoring and Interception Unit, these files talk with the Linux kernel.
+
+📄 `src/fanotify.c` — function: `init_fanotify`
+
+Open channel to contact between the program and kernel system (`fanotify_init`) and need permission `FAN_CLASS_CONTENT`. This makes the kernel stop for any process and wait the decision (allow or deny) before continue. This needs root permission, so we need `sudo`.
+
+📄 `src/fanotify.c` — function: `mark_directory(fan_fd, dir_path)`
+
+This tells the kernel to watch the folder, and anyone try to open it (`FAN_OPEN_PERM`) send notification before you allow it. The process `FAN_EVENT_ON_CHILD` monitors subdirectories, not just the main folder.
+
+📄 `src/fanotify.c` — function: `get_filepath_from_fd(fd, ...)`
+
+An internal helper function that converts a kernel-provided file descriptor (fd) into a readable file path by reading `/proc/self/fd/<fd>`.
+
+📄 `src/fanotify.c` — function: `start_event_loop(fan_fd)`
+
+Main Event Loop: The core function that runs indefinitely, listening for kernel events and processing each event:
+
+1- make sure it was a safe event
+
+2- ignore any request come from the program itself
+
+3- bring the path and check is it the canary. If yes, bring program name that try to open it (`/proc/<pid>/exe`) and make sure it's not in whitelist. If suspicious, kill it and don't let it get inside. If no, they call `backup_file()` first, and this let the open
+
+4- send the decision (`FAN_ALLOW`/`FAN_DENY`) back to kernel
