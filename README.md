@@ -36,7 +36,6 @@ check the path of file and return 1 if that contain `000_canary_` this call the 
 
 Automatically removes bait files when protection stops, leaving no clutter behind.
 
-
 ---
 
 📁 `include/fanotify.h` | `src/fanotify.c`
@@ -77,7 +76,7 @@ backup unit
 
 📄 `src/backup.c` — function: `backup_file(src_fd)`
 
-One-Time File Backup: Takes an open file descriptor and creates a single backup copy per file using `O_EXCL` to prevent overwriting. It validates that the file is a regular file (`S_ISREG`) and under 20MB to prevent system freezes on large files.
+One-Time File Backup: Takes an open file descriptor and creates a single backup copy per file using `O_EXCL` to prevent overwriting. It validates that the file is a regular file (`S_ISREG`) and under 20MB to prevent system freezes on large files. All backups are stored in a fixed folder (`/tmp/.vfs_sentinel_backups`), and each backup file is named after the file's inode number (e.g. `598018.bak`) instead of its original name, to avoid collisions between different files.
 
 📄 `src/backup.c` — function: `fallback_copy(src_fd, dest_fd)`
 
@@ -105,3 +104,62 @@ Turns on automatically on exit signals (`Ctrl+C` or `SIGTERM`) to clean up bait 
 4- Initializes fanotify and attaches it to the target directory (`init_fanotify` + `mark_directory`).
 
 5- Enters the monitoring loop (`start_event_loop`), which runs non-stop until stopped by the user.
+
+---
+
+## How to run it / How to use it
+
+### 1. Build
+
+Note: the `Makefile` expects a `main.c` file in the project root (not inside `src/`). If you're setting up the project yourself, make sure `main.c` exists in the root folder with this inside it:
+
+```c
+#include "sentinel.h"
+
+int main(int argc, char *argv[]) {
+    return sentinel_run(argc >= 2 ? argv[1] : NULL);
+}
+```
+
+```bash
+make clean
+make
+```
+
+### 2. Run — Demo Mode (no folder needed)
+
+If you run it without any argument, it automatically creates a test folder (`demo_vault`) with a sample file inside, and starts protecting it:
+
+```bash
+sudo ./sentinel
+```
+
+### 3. Run — Protect a Real Folder
+
+Pass any folder path you want to protect:
+
+```bash
+sudo ./sentinel /path/to/your/folder
+```
+
+`sudo` is required because `fanotify` needs root permission to intercept file access at the kernel level.
+
+### 4. Test It
+
+Open a normal file inside the protected folder — it should open fine, and a backup copy gets created automatically:
+
+```bash
+cat /path/to/your/folder/some_file.txt
+```
+
+Try opening the bait file directly — the process should be killed instantly:
+
+```bash
+cat /path/to/your/folder/000_canary_.docx
+echo "exit code: $?"   # 137 means it was killed
+```
+
+### 5. Stop It
+Ctrl+C
+
+This cleans up the bait file automatically before exiting.
