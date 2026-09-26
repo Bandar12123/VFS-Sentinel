@@ -67,3 +67,18 @@ Main Event Loop: The core function that runs indefinitely, listening for kernel 
 3- bring the path and check is it the canary. If yes, bring program name that try to open it (`/proc/<pid>/exe`) and make sure it's not in whitelist. If suspicious, kill it and don't let it get inside. If no, they call `backup_file()` first, and this let the open
 
 4- send the decision (`FAN_ALLOW`/`FAN_DENY`) back to kernel
+
+---
+
+📁 `include/backup.h` | `src/backup.c`
+
+## backup.h / backup.c
+backup unit
+
+📄 `src/backup.c` — function: `backup_file(src_fd)`
+
+One-Time File Backup: Takes an open file descriptor and creates a single backup copy per file using `O_EXCL` to prevent overwriting. It validates that the file is a regular file (`S_ISREG`) and under 20MB to prevent system freezes on large files.
+
+📄 `src/backup.c` — function: `fallback_copy(src_fd, dest_fd)`
+
+Internal Fallback Copy: If the fast `copy_file_range` call fails (e.g., across different filesystems), it falls back to a traditional read/write loop using an 8KB buffer to guarantee backup creation under all conditions.
