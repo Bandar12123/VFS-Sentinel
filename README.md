@@ -5,6 +5,9 @@
 ![Language](https://img.shields.io/badge/language-C-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+![Logo](assets/logo.svg)
+
+
 ## What is ransomware
 
 Ransomware is a type of malicious software or malware. It encrypts a victim's data, after which the attacker demands a ransom.
