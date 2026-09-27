@@ -1,5 +1,10 @@
 # VFS-Sentinel
 
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Platform](https://img.shields.io/badge/platform-Linux-orange)
+![Language](https://img.shields.io/badge/language-C-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 ## What is ransomware
 
 Ransomware is a type of malicious software or malware. It encrypts a victim's data, after which the attacker demands a ransom.
