@@ -5,7 +5,10 @@
 ![Language](https://img.shields.io/badge/language-C-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-![Logo](assets/logo.svg)
+<p align="center">
+  <img src="assets/logo.svg" alt="Logo" width="160" />
+</p>
+
 
 
 ## What is ransomware
