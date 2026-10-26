@@ -76,7 +76,7 @@ int sentinel_run(const char *target_dir_in) {
     }
 
     int fan_fd = init_fanotify();
-    if (fan_fd < 0 || mark_directory(fan_fd, target_dir) != 0) {
+    if (fan_fd < 0 || mark_tree(fan_fd, target_dir) != 0) {
         if (fan_fd >= 0) close(fan_fd);
         cleanup_canary_file(global_canary_path);
         notify_close();

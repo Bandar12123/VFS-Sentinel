@@ -64,7 +64,11 @@ Open channel to contact between the program and kernel system (`fanotify_init`) 
 
 📄 `src/fanotify.c` — function: `mark_directory(fan_fd, dir_path)`
 
-This tells the kernel to watch the folder, and anyone try to open it (`FAN_OPEN_PERM`) send notification before you allow it. The process `FAN_EVENT_ON_CHILD` monitors subdirectories, not just the main folder.
+This tells the kernel to watch a single folder: anyone who tries to open a file in it (`FAN_OPEN_PERM`) causes a notification before access is allowed. `FAN_EVENT_ON_CHILD` makes the kernel report events on the folder's direct children.
+
+📄 `src/fanotify.c` — function: `mark_tree(fan_fd, dir_path)`
+
+Walks the target folder and every subdirectory under it (using `nftw`) and calls `fanotify_mark` on each one, so protection is recursive — not just the top folder. It stays inside one filesystem (`FTW_MOUNT`) and reports how many directories it is watching. Note: subdirectories created *after* the daemon starts are not yet watched; restart to pick them up.
 
 📄 `src/fanotify.c` — function: `get_filepath_from_fd(fd, ...)`
 

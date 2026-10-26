@@ -2,6 +2,12 @@
 #include "backup.h"
 #include "notify.h"
 
+#include <ftw.h>
+
+/* fanotify fd shared with the nftw callback (nftw has no user-data argument). */
+static int g_fan_fd = -1;
+static int g_mark_count = 0;
+
 int init_fanotify(void) {
     int fan_fd = fanotify_init(FAN_CLASS_CONTENT | FAN_CLOEXEC, O_RDONLY);
     if (fan_fd == -1) {
@@ -22,6 +28,40 @@ int mark_directory(int fan_fd, const char *dir_path) {
         return -1;
     }
     printf("[VFS-Sentinel] Monitoring active on directory: %s\n", dir_path);
+    return 0;
+}
+
+/* nftw callback: mark every directory it visits. */
+static int mark_cb(const char *path, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
+    (void)sb; (void)ftwbuf;
+    if (typeflag != FTW_D && typeflag != FTW_DP) return 0;   /* directories only */
+
+    if (fanotify_mark(g_fan_fd, FAN_MARK_ADD,
+                      FAN_OPEN_PERM | FAN_EVENT_ON_CHILD,
+                      AT_FDCWD, path) == -1) {
+        fprintf(stderr, "[WARN] could not watch %s: %s\n", path, strerror(errno));
+        return 0;   /* skip this one, keep going */
+    }
+    g_mark_count++;
+    return 0;
+}
+
+/* Recursively mark dir_path and every subdirectory under it. */
+int mark_tree(int fan_fd, const char *dir_path) {
+    g_fan_fd = fan_fd;
+    g_mark_count = 0;
+
+    /* Up to 64 open fds, don't cross into other mounted filesystems. */
+    if (nftw(dir_path, mark_cb, 64, FTW_PHYS | FTW_MOUNT) == -1) {
+        perror("[ERROR] nftw failed");
+        return -1;
+    }
+    if (g_mark_count == 0) {
+        fprintf(stderr, "[ERROR] no directories could be watched under %s\n", dir_path);
+        return -1;
+    }
+    printf("[VFS-Sentinel] Monitoring active on %d director%s under: %s\n",
+           g_mark_count, g_mark_count == 1 ? "y" : "ies", dir_path);
     return 0;
 }
 
