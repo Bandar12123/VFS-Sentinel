@@ -14,6 +14,10 @@ Ransomware is a type of malicious software or malware. It encrypts a victim's da
 
 4. **Backup** — save a copy from any file it tries to open, for safety.
 
+6. **Runs as a root daemon** — installs as a systemd service, starts at boot, restarts itself if it crashes.
+
+7. **Notifications** — desktop pop-up (critical) on every alert, plus logs in the system journal.
+
 5. **Whitelist** — tells the difference between trusted system and real threats.
 
 ---
@@ -84,6 +88,21 @@ Internal Fallback Copy: If the fast `copy_file_range` call fails (e.g., across d
 
 ---
 
+📁 `include/notify.h` | `src/notify.c`
+
+## notify.h / notify.c
+Logging and notification unit.
+
+📄 `src/notify.c` — function: `notify_init()`
+
+Opens syslog (`journalctl -u vfs-sentinel`) and finds the desktop user to notify from `SENTINEL_NOTIFY_USER` (or `SUDO_USER` when started with sudo).
+
+📄 `src/notify.c` — function: `notify_send(level, title, body)`
+
+Writes the message to syslog and stdout, then shows a desktop notification by running `notify-send` as that user on their session D-Bus (`/run/user/<uid>/bus`). It double-forks so the daemon never waits on the pop-up and leaves no zombie processes.
+
+---
+
 📁 `include/sentinel.h` | `src/sentinel.c`
 
 ## 4. sentinel.c / sentinel.h
@@ -91,7 +110,7 @@ The entry interface, connects all above modules into a single function, keeping 
 
 📄 `src/sentinel.c` — function: `handle_shutdown(sig)`
 
-Turns on automatically on exit signals (`Ctrl+C` or `SIGTERM`) to clean up bait files and exit the program safely.
+Runs on exit signals (`Ctrl+C` or `SIGTERM` from `systemctl stop`). It only sets a flag (async-signal-safe); the event loop sees it, exits, and `sentinel_run` cleans up the bait file.
 
 📄 `src/sentinel.c` — function: `sentinel_run(target_dir)`
 
@@ -161,3 +180,52 @@ echo "exit code: $?"   # 137 means it was killed
 Ctrl+C
 
 This cleans up the bait file automatically before exiting.
+
+---
+
+## Run as a daemon (systemd service)
+
+### Install
+
+```bash
+make
+sudo make install
+```
+
+This installs:
+- `/usr/local/sbin/vfs-sentinel` — the binary
+- `/etc/systemd/system/vfs-sentinel.service` — the service (runs as root)
+- `/etc/default/vfs-sentinel` — settings (created once, never overwritten)
+
+### Configure
+
+```bash
+sudo nano /etc/default/vfs-sentinel
+```
+
+```bash
+SENTINEL_DIR=/home/<you>/Documents     # folder to protect (absolute path)
+SENTINEL_NOTIFY_USER=<you>             # who gets desktop notifications
+```
+
+### Start / enable at boot
+
+```bash
+sudo systemctl enable --now vfs-sentinel
+systemctl status vfs-sentinel
+```
+
+### Watch the logs live
+
+```bash
+journalctl -u vfs-sentinel -f
+```
+
+### Stop / remove
+
+```bash
+sudo systemctl stop vfs-sentinel       # canary is cleaned up on stop
+sudo make uninstall
+```
+
+Desktop notifications need `notify-send` (`sudo apt install libnotify-bin`) and a logged-in desktop session for that user.

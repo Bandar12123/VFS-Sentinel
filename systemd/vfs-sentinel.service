@@ -1,0 +1,21 @@
+[Unit]
+Description=VFS-Sentinel anti-ransomware daemon (fanotify canary trap)
+Documentation=file:///opt/vfs-sentinel/README.md
+After=local-fs.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/vfs-sentinel
+ExecStart=/usr/local/sbin/vfs-sentinel ${SENTINEL_DIR}
+Restart=on-failure
+RestartSec=3
+# Output goes to the journal: journalctl -u vfs-sentinel -f
+StandardOutput=journal
+StandardError=journal
+# Hardening that does not block fanotify
+NoNewPrivileges=yes
+PrivateTmp=no
+ProtectHome=no
+
+[Install]
+WantedBy=multi-user.target

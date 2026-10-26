@@ -1,5 +1,6 @@
 #include "fanotify.h"
 #include "backup.h"
+#include "notify.h"
 
 int init_fanotify(void) {
     int fan_fd = fanotify_init(FAN_CLASS_CONTENT | FAN_CLOEXEC, O_RDONLY);
@@ -42,7 +43,15 @@ void start_event_loop(int fan_fd) {
 
     printf("[VFS-Sentinel] Daemon running.. Listening for VFS events.\n");
 
-    while ((len = read(fan_fd, buffer, sizeof(buffer))) > 0) {
+    while (!sentinel_stop) {
+        len = read(fan_fd, buffer, sizeof(buffer));
+        if (len < 0) {
+            if (errno == EINTR) continue;      /* signal: loop re-checks sentinel_stop */
+            perror("[ERROR] read(fanotify)");
+            break;
+        }
+        if (len == 0) break;
+
         struct fanotify_event_metadata *metadata;
         metadata = (struct fanotify_event_metadata *)buffer;
 
@@ -69,6 +78,7 @@ void start_event_loop(int fan_fd) {
             char filepath[512];
             get_filepath_from_fd(metadata->fd, filepath, sizeof(filepath));
             printf("[EVENT] PID %d requested access to:  %s\n", metadata->pid, filepath);
+            fflush(stdout);
 
             if (is_canary_file(filepath)) {
                 char exe_path[256] = "UNKNOWN";
@@ -94,6 +104,12 @@ void start_event_loop(int fan_fd) {
 
                     kill(metadata->pid, SIGKILL);
                     response.response = FAN_DENY;
+
+                    char body[PATH_BUF * 2];
+                    snprintf(body, sizeof(body),
+                             "Canary file touched.\nProcess %d (%s) was blocked and killed.\nFile: %s",
+                             metadata->pid, exe_path, filepath);
+                    notify_send("critical", "RANSOMWARE ALERT", body);
                 }
             } else {
                 backup_file(metadata->fd);

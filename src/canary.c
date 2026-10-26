@@ -1,11 +1,15 @@
 #include "canary.h"
 
-int create_canary_file(const char *target_dir, char *out_canary_path){
+int create_canary_file(const char *target_dir, char *out_canary_path, size_t out_size){
     if (!target_dir || !out_canary_path){
         return -1;
     }
 
-    snprintf(out_canary_path, BUFFER_SIZE, "%s/%s%s", target_dir, CANARY_PREFIX, CANARY_SUFFIX);
+    int n = snprintf(out_canary_path, out_size, "%s/%s%s", target_dir, CANARY_PREFIX, CANARY_SUFFIX);
+    if (n < 0 || (size_t)n >= out_size) {
+        fprintf(stderr, "Canary path too long for: %s\n", target_dir);
+        return -1;
+    }
 
     int fd = open(out_canary_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
     if (fd < 0){

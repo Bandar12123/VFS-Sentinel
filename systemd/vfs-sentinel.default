@@ -1,0 +1,5 @@
+# /etc/default/vfs-sentinel — settings for the VFS-Sentinel service
+# Folder to protect (absolute path)
+SENTINEL_DIR=/home/CHANGE_ME/Documents
+# Desktop user who receives notifications
+SENTINEL_NOTIFY_USER=CHANGE_ME
